@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vind de Verdachte Persoon - Kantoorgebouw</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #10263F;
+            font-family: Arial, sans-serif;
+            color: #FFFFFF;
+            text-align: center;
+        }
+        
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .title {
+            color: #10263F;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .instructions {
+            color: #231F20;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border: 3px solid #10263F;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 15%, #f5f5f5 15%, #f5f5f5 100%);
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        
+        /* Office floor and walls */
+        .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 85%;
+            background: repeating-linear-gradient(90deg, #e8e8e8, #e8e8e8 50px, #d0d0d0 50px, #d0d0d0 100px);
+        }
+        
+        /* Office furniture */
+        .desk {
+            position: absolute;
+            width: 40px;
+            height: 25px;
+            background-color: #8B4513;
+            border: 1px solid #654321;
+        }
+        
+        .computer {
+            position: absolute;
+            width: 12px;
+            height: 8px;
+            background-color: #231F20;
+            border: 1px solid #000;
+        }
+        
+        .chair {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #666;
+            border-radius: 50%;
+        }
+        
+        .plant {
+            position: absolute;
+            width: 20px;
+            height: 30px;
+        }
+        
+        .plant::before {
+            content: '🌿';
+            position: absolute;
+            font-size: 18px;
+            top: -5px;
+            left: -2px;
+        }
+        
+        .coffee-machine {
+            position: absolute;
+            width: 25px;
+            height: 35px;
+            background-color: #333;
+            border-radius: 5px;
+        }
+        
+        .coffee-machine::before {
+            content: '☕';
+            position: absolute;
+            font-size: 16px;
+            top: 5px;
+            left: 4px;
+        }
+        
+        /* People */
+        .person {
+            position: absolute;
+            width: 18px;
+            height: 35px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+        
+        .person:hover {
+            transform: scale(1.3);
+            z-index: 20;
+        }
+        
+        .person-head {
+            width: 10px;
+            height: 10px;
+            background-color: #231F20;
+            border-radius: 50%;
+            margin: 0 auto 1px;
+        }
+        
+        .person-body {
+            width: 14px;
+            height: 18px;
+            background-color: #10263F;
+            margin: 0 auto 1px;
+            border-radius: 2px;
+        }
+        
+        .person-legs {
+            width: 10px;
+            height: 5px;
+            background-color: #231F20;
+            margin: 0 auto;
+            border-radius: 0 0 2px 2px;
+        }
+        
+        /* Different clothing variations for normal people */
+        .person.variant1 .person-body { background-color: #4a4a4a; }
+        .person.variant2 .person-body { background-color: #2c5f2d; }
+        .person.variant3 .person-body { background-color: #1e3a8a; }
+        .person.variant4 .person-body { background-color: #7c2d12; }
+        .person.variant5 .person-body { background-color: #581c87; }
+        
+        /* Hair variations */
+        .person.hair1 .person-head { background-color: #8B4513; }
+        .person.hair2 .person-head { background-color: #FFD700; }
+        .person.hair3 .person-head { background-color: #654321; }
+        .person.hair4 .person-head { background-color: #000; }
+        
+        /* The suspect - red outfit and red hair */
+        .suspect .person-body {
+            background-color: #EF373E !important;
+        }
+        
+        .suspect .person-head {
+            background-color: #EF373E !important;
+        }
+        
+        /* Walking animation */
+        @keyframes walk {
+            0%, 100% { transform: translateX(0px); }
+            50% { transform: translateX(5px); }
+        }
+        
+        /* Shake animation for wrong answers */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0px); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .person.walking {
+            animation: walk 2s infinite;
+        }
+        
+        .message {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 25px;
+        }
+        
+        .success {
+            color: #EF373E;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            color: #10263F;
+            font-size: 16px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .restart-btn {
+            background-color: #EF373E;
+            color: #FFFFFF;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .restart-btn:hover {
+            background-color: #d62c36;
+        }
+        
+        .difficulty {
+            color: #10263F;
+            margin: 10px 0;
+        }
+        
+        .difficulty select {
+            padding: 5px;
+            font-size: 14px;
+            border: 2px solid #10263F;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="title">🔍 Detective Spel - Vind de Verdachte! 🔍</div>
+        <div class="instructions">
+            <strong>Missie:</strong> Er is een verdachte persoon aanwezig!<br>
+            Zoek naar iemand met een <strong style="color: #EF373E;">rode outfit en rood haar</strong>.<br>
+            Let op: mensen lopen rond, dus blijf alert! 👀
+        </div>
+        
+        <div class="difficulty">
+            Moeilijkheidsgraad: 
+            <select id="difficulty" onchange="startNewGame()">
+                <option value="easy">Makkelijk (20-25 mensen)</option>
+                <option value="medium" selected>Normaal (30-40 mensen)</option>
+                <option value="hard">Moeilijk (45-60 mensen)</option>
+            </select>
+        </div>
+        
+        <div class="stats">
+            <div id="timer">Tijd: 0s</div>
+            <div id="people-count">Mensen: 0</div>
+            <div id="attempts">Pogingen: 0</div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="floor"></div>
+        </div>
+        
+        <div class="message" id="message">Zoek de verdachte persoon...</div>
+        <button class="restart-btn" onclick="startNewGame()">🔄 Nieuwe Locatie</button>
+    </div>
+
+    <script>
+        let gameStartTime;
+        let timerInterval;
+        let gameWon = false;
+        let attempts = 0;
+        let walkingIntervals = [];
+        
+        function createOfficeItems() {
+            const gameArea = document.getElementById('gameArea');
+            const items = [];
+            
+            // Add desks with computers
+            for (let i = 0; i < 8; i++) {
+                const desk = document.createElement('div');
+                desk.className = 'desk';
+                const x = 50 + (i % 4) * 180;
+                const y = 200 + Math.floor(i / 4) * 150;
+                desk.style.left = x + 'px';
+                desk.style.top = y + 'px';
+                gameArea.appendChild(desk);
+                
+                const computer = document.createElement('div');
+                computer.className = 'computer';
+                computer.style.left = (x + 15) + 'px';
+                computer.style.top = (y - 10) + 'px';
+                gameArea.appendChild(computer);
+                
+                const chair = document.createElement('div');
+                chair.className = 'chair';
+                chair.style.left = (x + 12) + 'px';
+                chair.style.top = (y + 30) + 'px';
+                gameArea.appendChild(chair);
+                
+                items.push({x: x-10, y: y-10, width: 60, height: 55});
+            }
+            
+            // Add plants
+            for (let i = 0; i < 4; i++) {
+                const plant = document.createElement('div');
+                plant.className = 'plant';
+                const x = 100 + i * 200;
+                const y = 120;
+                plant.style.left = x + 'px';
+                plant.style.top = y + 'px';
+                gameArea.appendChild(plant);
+                
+                items.push({x: x-5, y: y-5, width: 30, height: 40});
+            }
+            
+            // Add coffee machine
+            const coffeeMachine = document.createElement('div');
+            coffeeMachine.className = 'coffee-machine';
+            coffeeMachine.style.left = '750px';
+            coffeeMachine.style.top = '150px';
+            gameArea.appendChild(coffeeMachine);
+            
+            items.push({x: 745, y: 145, width: 35, height: 45});
+            
+            return items;
+        }
+        
+        function createPerson(x, y, isSuspect = false) {
+            const person = document.createElement('div');
+            person.className = 'person';
+            
+            if (!isSuspect) {
+                // Random clothing and hair
+                const clothingVar = 'variant' + (Math.floor(Math.random() * 5) + 1);
+                const hairVar = 'hair' + (Math.floor(Math.random() * 4) + 1);
+                person.classList.add(clothingVar, hairVar);
+                
+                // Some people walk around
+                if (Math.random() < 0.3) {
+                    person.classList.add('walking');
+                }
+            } else {
+                person.classList.add('suspect');
+                // Suspect also walks sometimes
+                if (Math.random() < 0.5) {
+                    person.classList.add('walking');
+                }
+            }
+            
+            person.style.left = x + 'px';
+            person.style.top = y + 'px';
+            
+            const head = document.createElement('div');
+            head.className = 'person-head';
+            
+            const body = document.createElement('div');
+            body.className = 'person-body';
+            
+            const legs = document.createElement('div');
+            legs.className = 'person-legs';
+            
+            person.appendChild(head);
+            person.appendChild(body);
+            person.appendChild(legs);
+            
+            if (isSuspect) {
+                person.onclick = function() {
+                    if (!gameWon) {
+                        gameWon = true;
+                        clearInterval(timerInterval);
+                        walkingIntervals.forEach(interval => clearInterval(interval));
+                        const endTime = Date.now();
+                        const timeTaken = Math.round((endTime - gameStartTime) / 1000);
+                        document.getElementById('message').innerHTML = 
+                            `<span class="success">🎉 Excellent! Verdachte gevangen in ${timeTaken}s met ${attempts} pogingen!</span>`;
+                        person.style.transform = 'scale(1.8)';
+                        person.style.border = '3px solid #EF373E';
+                        person.style.borderRadius = '5px';
+                        person.style.zIndex = '50';
+                        
+                        // Add success animation
+                        person.style.animation = 'none';
+                        person.style.background = 'rgba(239, 55, 62, 0.2)';
+                        
+                        // Flash effect
+                        let flashCount = 0;
+                        const flashInterval = setInterval(() => {
+                            person.style.opacity = person.style.opacity === '0.5' ? '1' : '0.5';
+                            flashCount++;
+                            if (flashCount > 6) {
+                                clearInterval(flashInterval);
+                                person.style.opacity = '1';
+                            }
+                        }, 200);
+                    }
+                };
+            } else {
+                person.onclick = function() {
+                    if (!gameWon) {
+                        attempts++;
+                        document.getElementById('attempts').textContent = `Pogingen: ${attempts}`;
+                        
+                        // Clear visual feedback
+                        person.style.background = 'rgba(200, 200, 200, 0.3)';
+                        person.style.border = '2px solid #666';
+                        person.style.borderRadius = '3px';
+                        
+                        // Show wrong message with more impact
+                        document.getElementById('message').innerHTML = 
+                            '<span style="color: #EF373E; font-weight: bold;">❌ FOUT! Dat is niet de verdachte!</span>';
+                        
+                        // Shake animation for wrong choice
+                        person.style.animation = 'shake 0.5s';
+                        
+                        setTimeout(() => {
+                            if (!gameWon) {
+                                document.getElementById('message').innerHTML = 
+                                    '<span style="color: #10263F;">🔍 Blijf zoeken naar de persoon in het rood...</span>';
+                            }
+                        }, 2000);
+                    }
+                };
+            }
+            
+            return person;
+        }
+        
+        function isPositionValid(x, y, items, people) {
+            // Check collision with office items
+            for (const item of items) {
+                if (x < item.x + item.width && x + 18 > item.x && 
+                    y < item.y + item.height && y + 35 > item.y) {
+                    return false;
+                }
+            }
+            
+            // Check collision with other people
+            for (const person of people) {
+                if (Math.abs(person.x - x) < 25 && Math.abs(person.y - y) < 40) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        function addWalkingBehavior() {
+            const people = document.querySelectorAll('.person.walking');
+            
+            people.forEach(person => {
+                const interval = setInterval(() => {
+                    if (!gameWon) {
+                        const currentX = parseInt(person.style.left);
+                        const currentY = parseInt(person.style.top);
+                        
+                        // Random direction
+                        const directions = [
+                            {x: 15, y: 0}, {x: -15, y: 0}, 
+                            {x: 0, y: 15}, {x: 0, y: -15}
+                        ];
+                        
+                        const direction = directions[Math.floor(Math.random() * directions.length)];
+                        const newX = Math.max(10, Math.min(850, currentX + direction.x));
+                        const newY = Math.max(100, Math.min(550, currentY + direction.y));
+                        
+                        person.style.left = newX + 'px';
+                        person.style.top = newY + 'px';
+                    }
+                }, 2000 + Math.random() * 3000);
+                
+                walkingIntervals.push(interval);
+            });
+        }
+        
+        function startNewGame() {
+            gameWon = false;
+            attempts = 0;
+            gameStartTime = Date.now();
+            
+            // Clear previous intervals
+            walkingIntervals.forEach(interval => clearInterval(interval));
+            walkingIntervals = [];
+            
+            const gameArea = document.getElementById('gameArea');
+            gameArea.innerHTML = '<div class="floor"></div>';
+            document.getElementById('message').textContent = 'Zoek de verdachte persoon...';
+            document.getElementById('attempts').textContent = 'Pogingen: 0';
+            
+            // Create office environment
+            const officeItems = createOfficeItems();
+            
+            // Reset timer
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!gameWon) {
+                    const elapsed = Math.round((Date.now() - gameStartTime) / 1000);
+                    document.getElementById('timer').textContent = `Tijd: ${elapsed}s`;
+                }
+            }, 1000);
+            
+            const difficulty = document.getElementById('difficulty').value;
+            let numPeople;
+            
+            switch(difficulty) {
+                case 'easy': numPeople = 20 + Math.floor(Math.random() * 6); break;
+                case 'medium': numPeople = 30 + Math.floor(Math.random() * 11); break;
+                case 'hard': numPeople = 45 + Math.floor(Math.random() * 16); break;
+            }
+            
+            const people = [];
+            
+            // Create normal people
+            for (let i = 0; i < numPeople; i++) {
+                let x, y, attempts = 0;
+                do {
+                    x = 20 + Math.random() * 840;
+                    y = 100 + Math.random() * 450;
+                    attempts++;
+                } while (!isPositionValid(x, y, officeItems, people) && attempts < 100);
+                
+                if (attempts < 100) {
+                    people.push({x, y});
+                    const person = createPerson(x, y, false);
+                    gameArea.appendChild(person);
+                }
+            }
+            
+            // Create the suspect
+            let suspectX, suspectY, suspectAttempts = 0;
+            do {
+                suspectX = 20 + Math.random() * 840;
+                suspectY = 100 + Math.random() * 450;
+                suspectAttempts++;
+            } while (!isPositionValid(suspectX, suspectY, officeItems, people) && suspectAttempts < 100);
+            
+            if (suspectAttempts < 100) {
+                const suspect = createPerson(suspectX, suspectY, true);
+                gameArea.appendChild(suspect);
+                people.push({x: suspectX, y: suspectY});
+            }
+            
+            document.getElementById('people-count').textContent = `Mensen: ${people.length}`;
+            
+            // Add walking behavior after a short delay
+            setTimeout(addWalkingBehavior, 1000);
+        }
+        
+        // Start the first game when page loads
+        window.onload = function() {
+            startNewGame();
+        };
+    </script>
+</body>
+</html>
